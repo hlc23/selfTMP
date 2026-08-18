@@ -211,9 +211,35 @@ let editingId = null;
 function updateEditCount() {
   editCount.textContent = editContent.value.length.toLocaleString() + ' chars';
 }
+// Sizes the textarea to hug its content on both axes. Width uses CSS `ch`
+// units rather than a JS pixel measurement: .edit-textarea is monospace, so
+// 1ch is exactly one character's width in the font actually used for layout
+// — no separate mirror/canvas measurement to fall out of sync with it. (A
+// hidden mirror <div> and a scrollWidth-based measurement were both tried
+// and both drifted from the real textarea's rendered width in some cases.)
+// Height is measured after the width is set, since narrower width means more
+// wrapped lines; collapsing to 0px first is needed because a textarea's
+// height:auto falls back to the rows attribute rather than shrinking to fit.
+// overflow-y is forced to 'hidden' for the whole calculation: collapsing to
+// 0px to measure scrollHeight momentarily makes the box shorter than its
+// content, and overflow-y:auto would reserve a vertical scrollbar gutter
+// right at that moment — eating into the width available for text, and
+// throwing off both the width and height results. Restoring 'auto' at the
+// end still lets genuinely tall content (past max-height) scroll normally.
 function autoGrowEdit() {
+  editContent.style.overflowY = 'hidden';
+
+  const cs = getComputedStyle(editContent);
+  const hPad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) +
+    parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+  const maxChars = editContent.value.split('\n').reduce((m, l) => Math.max(m, l.length), 0);
+  editContent.style.width = `max(160px, min(calc(${maxChars}ch + ${hPad + 4}px), 100%))`;
+
+  const vBorder = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
   editContent.style.height = '0px';
-  editContent.style.height = editContent.scrollHeight + 'px';
+  editContent.style.height = (editContent.scrollHeight + vBorder) + 'px';
+
+  editContent.style.overflowY = '';
 }
 editContent.addEventListener('input', () => { autoGrowEdit(); updateEditCount(); });
 

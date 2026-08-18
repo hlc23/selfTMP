@@ -624,6 +624,7 @@ pre.paste {
   line-height: 1.6;
   resize: none;
   overflow-y: auto;
+  overflow-wrap: break-word;
   transition:
     border-color 0.15s,
     box-shadow 0.15s;
