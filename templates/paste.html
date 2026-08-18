@@ -17,11 +17,89 @@
       </p>
     </div>
     <div class="paste-actions">
+      {{if not .OneTime}}<button id="edit-toggle" class="link-btn">Edit</button>{{end}}
       <a href="/raw/{{.ID}}" class="link-btn">Raw</a>
       <a href="/" class="link-btn">← back</a>
     </div>
   </header>
-  <pre class="paste">{{.Content}}</pre>
+  <pre id="view-content" class="paste">{{.Content}}</pre>
+  {{if not .OneTime}}
+  <div id="edit-panel" hidden>
+    <textarea id="edit-content" class="edit-textarea" rows="14">{{.Content}}</textarea>
+    <p id="edit-error" class="error small" hidden></p>
+    <div class="toolbar-actions edit-actions">
+      <button id="edit-cancel" class="ghost">Cancel</button>
+      <button id="edit-save" class="primary">Save</button>
+    </div>
+  </div>
+  {{end}}
 </main>
+{{if not .OneTime}}
+<script>
+const TOKEN_KEY = 'selftmp_token';
+const ID = {{.ID}};
+
+const viewContent = document.getElementById('view-content');
+const editToggle = document.getElementById('edit-toggle');
+const editPanel = document.getElementById('edit-panel');
+const editContent = document.getElementById('edit-content');
+const editError = document.getElementById('edit-error');
+const editSave = document.getElementById('edit-save');
+const editCancel = document.getElementById('edit-cancel');
+
+function getToken() { return (localStorage.getItem(TOKEN_KEY) || '').trim(); }
+
+editToggle.addEventListener('click', () => {
+  let token = getToken();
+  if (!token) {
+    token = (prompt('Admin token:') || '').trim();
+    if (!token) return;
+    localStorage.setItem(TOKEN_KEY, token);
+  }
+  editContent.value = viewContent.textContent;
+  viewContent.hidden = true;
+  editToggle.hidden = true;
+  editPanel.hidden = false;
+  editError.hidden = true;
+  editContent.focus();
+});
+
+editCancel.addEventListener('click', closeEdit);
+
+function closeEdit() {
+  editPanel.hidden = true;
+  viewContent.hidden = false;
+  editToggle.hidden = false;
+}
+
+editSave.addEventListener('click', async () => {
+  const token = getToken();
+  editError.hidden = true;
+  const res = await fetch('/api/entries/' + encodeURIComponent(ID), {
+    method: 'PATCH',
+    headers: {
+      'X-Admin-Token': token,
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept': 'application/json',
+    },
+    body: new URLSearchParams({content: editContent.value}).toString(),
+  });
+  if (res.status === 401) {
+    localStorage.removeItem(TOKEN_KEY);
+    editError.textContent = 'Invalid admin token';
+    editError.hidden = false;
+    return;
+  }
+  if (!res.ok) {
+    editError.textContent = 'Save failed: ' + (await res.text());
+    editError.hidden = false;
+    return;
+  }
+  const updated = await res.json();
+  viewContent.textContent = updated.content;
+  closeEdit();
+});
+</script>
+{{end}}
 </body>
 </html>

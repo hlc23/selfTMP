@@ -577,6 +577,9 @@ pre.paste {
   justify-content: flex-end;
   margin-top: 12px;
 }
+#edit-panel {
+  margin-top: 8px;
+}
 
 /* ---------- admin table ---------- */
 .toolbar {
