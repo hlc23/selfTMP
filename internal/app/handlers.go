@@ -81,9 +81,10 @@ func (s *Server) baseURL(r *http.Request) string {
 	return scheme + "://" + host
 }
 
-// pickID returns the caller-supplied custom id if valid and available, or a
-// random 6-char id when custom is empty. Returned errors are sentinel values
-// (errSlugInvalid / errSlugTaken) so callers can pick the right HTTP status.
+// pickID returns the caller-supplied custom id if valid, or a random 6-char
+// id when custom is empty. A custom id that's already in use is treated like
+// a key being overwritten: the old entry (and its stored file, if any) is
+// deleted so the new content can take its place under the same id.
 func (s *Server) pickID(custom string) (string, error) {
 	custom = strings.TrimSpace(custom)
 	if custom == "" {
@@ -92,8 +93,13 @@ func (s *Server) pickID(custom string) (string, error) {
 	if err := validateSlug(custom); err != nil {
 		return "", err
 	}
-	if _, err := getEntry(s.db, custom); err == nil {
-		return "", errSlugTaken
+	if old, err := getEntry(s.db, custom); err == nil {
+		if old.StoragePath != "" {
+			_ = os.Remove(old.StoragePath)
+		}
+		if err := deleteEntry(s.db, custom); err != nil {
+			return "", err
+		}
 	}
 	return custom, nil
 }

@@ -14,7 +14,7 @@ Think of it as a private, disposable pastebin + file drop + link shortener that 
 - **Password protection** — bcrypt-hashed passwords, unlock persists via HMAC-signed cookie
 - **One-time links** — auto-delete after the first successful access, atomically enforced
 - **Expiring entries** — set a TTL (`1h`, `7d`, `never`, or any Go duration); a background janitor sweeps expired records every minute
-- **Custom slugs** — pick your own short id, or let the server generate one
+- **Custom slugs** — pick your own short id, or let the server generate one; reusing an existing id replaces that entry, key-value style
 - **Admin dashboard** — list, inspect, edit, and delete entries via a token-gated UI at `/admin`
 - **Zero-dependency runtime** — pure Go SQLite (`modernc.org/sqlite`), templates and static assets embedded via `//go:embed`
 - **Reverse-proxy aware** — respects `X-Forwarded-Proto` / `X-Forwarded-Host` when generating share links
@@ -132,7 +132,7 @@ curl -X PATCH http://localhost:8080/api/entries/my-link \
 
 | Field        | Applies to  | Description                                                              |
 | ------------ | ----------- | ------------------------------------------------------------------------ |
-| `custom_id`  | all         | Custom slug (`2-64` chars, `[A-Za-z0-9_-]`). Empty = random 6-char id    |
+| `custom_id`  | all         | Custom slug (`2-64` chars, `[A-Za-z0-9_-]`). Empty = random 6-char id. Reusing an existing id **replaces** that entry (old file on disk is removed) |
 | `expires_in` | all         | `1h`, `30m`, `7d`, any Go duration, or `never` / `0` for no expiry       |
 | `one_time`   | file, paste | `1` / `true` / `on` — entry is deleted after the first successful access |
 | `password`   | file, paste | Sets a bcrypt password gate on the entry                                 |
