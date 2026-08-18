@@ -58,7 +58,7 @@ const editCancel = document.getElementById('edit-cancel');
 function getToken() { return (localStorage.getItem(TOKEN_KEY) || '').trim(); }
 
 function autoGrow() {
-  editContent.style.height = 'auto';
+  editContent.style.height = '0px';
   editContent.style.height = editContent.scrollHeight + 'px';
 }
 function updateCount() {

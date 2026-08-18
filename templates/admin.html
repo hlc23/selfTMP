@@ -211,7 +211,11 @@ let editingId = null;
 function updateEditCount() {
   editCount.textContent = editContent.value.length.toLocaleString() + ' chars';
 }
-editContent.addEventListener('input', updateEditCount);
+function autoGrowEdit() {
+  editContent.style.height = '0px';
+  editContent.style.height = editContent.scrollHeight + 'px';
+}
+editContent.addEventListener('input', () => { autoGrowEdit(); updateEditCount(); });
 
 async function openEditModal(id) {
   const token = getToken();
@@ -228,6 +232,7 @@ async function openEditModal(id) {
     updateEditCount();
     editBackdrop.hidden = false;
     editModal.hidden = false;
+    autoGrowEdit();
     editContent.focus();
   } catch (err) {
     alert('Failed to load entry: ' + err);

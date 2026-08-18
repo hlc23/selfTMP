@@ -612,7 +612,8 @@ pre.paste {
 .edit-textarea {
   display: block;
   width: 100%;
-  min-height: 240px;
+  min-height: 60px;
+  max-height: 70vh;
   padding: 14px 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -621,7 +622,8 @@ pre.paste {
   font-family: var(--font-mono);
   font-size: 13px;
   line-height: 1.6;
-  resize: vertical;
+  resize: none;
+  overflow-y: auto;
   transition:
     border-color 0.15s,
     box-shadow 0.15s;
