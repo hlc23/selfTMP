@@ -89,6 +89,23 @@ func deleteEntry(db *sql.DB, id string) error {
 	return err
 }
 
+// updateEntryContent overwrites the content and size of a paste or url entry.
+// Returns sql.ErrNoRows if id does not exist.
+func updateEntryContent(db *sql.DB, id, content string, size int64) error {
+	res, err := db.Exec(`UPDATE entries SET content = ?, size = ? WHERE id = ?`, content, size, id)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
 // claimDownload atomically increments the downloads counter, failing (0 rows)
 // if this is a one-time entry that has already been consumed. Returns true
 // when the caller may proceed to serve the entry.

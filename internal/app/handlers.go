@@ -586,6 +586,87 @@ func (s *Server) handleAPIList(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(out)
 }
 
+// handleAPIGet returns a single entry's full detail, including untruncated
+// content — used by the admin UI's edit form (the list endpoint only sends a
+// truncated preview).
+func (s *Server) handleAPIGet(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAuth(w, r) {
+		return
+	}
+	id := r.PathValue("id")
+	e, err := getEntry(s.db, id)
+	if err != nil {
+		writeError(w, r, http.StatusNotFound, "not found")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"id":           e.ID,
+		"kind":         e.Kind,
+		"filename":     e.Filename,
+		"content":      e.Content,
+		"size":         e.Size,
+		"one_time":     e.OneTime,
+		"has_password": e.PasswordHash != "",
+		"downloads":    e.Downloads,
+		"expires_at":   e.ExpiresAt,
+		"created_at":   e.CreatedAt,
+	})
+}
+
+// handleAPIUpdate edits the content of an existing paste or url entry.
+// File entries store their content on disk and are not editable this way —
+// re-upload to change a file's bytes.
+func (s *Server) handleAPIUpdate(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		writeError(w, r, http.StatusBadRequest, err.Error())
+		return
+	}
+	if !s.requireAuth(w, r) {
+		return
+	}
+	id := r.PathValue("id")
+	e, err := getEntry(s.db, id)
+	if err != nil {
+		writeError(w, r, http.StatusNotFound, "not found")
+		return
+	}
+
+	content := r.FormValue("content")
+	switch e.Kind {
+	case "paste":
+		if strings.TrimSpace(content) == "" {
+			writeError(w, r, http.StatusBadRequest, "empty content")
+			return
+		}
+	case "url":
+		u, err := url.Parse(strings.TrimSpace(content))
+		if err != nil || !u.IsAbs() || (u.Scheme != "http" && u.Scheme != "https") {
+			writeError(w, r, http.StatusBadRequest, "invalid url (must be absolute http/https)")
+			return
+		}
+		content = strings.TrimSpace(content)
+	default:
+		writeError(w, r, http.StatusBadRequest, "editing content is only supported for paste and url entries")
+		return
+	}
+
+	if err := updateEntryContent(s.db, id, content, int64(len(content))); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, r, http.StatusNotFound, "not found")
+			return
+		}
+		writeError(w, r, http.StatusInternalServerError, err.Error())
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"id":      id,
+		"content": content,
+		"size":    len(content),
+	})
+}
+
 func (s *Server) handleAPIDelete(w http.ResponseWriter, r *http.Request) {
 	if !s.requireAuth(w, r) {
 		return

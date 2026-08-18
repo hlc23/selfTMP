@@ -59,6 +59,17 @@
     </div>
     <p id="empty" class="muted center" hidden>No entries.</p>
   </section>
+
+  <!-- edit modal -->
+  <section id="edit-modal" class="card modal" hidden>
+    <h2>Edit <span id="edit-id" class="mono"></span></h2>
+    <textarea id="edit-content" class="edit-textarea" rows="10"></textarea>
+    <p id="edit-error" class="error small" hidden></p>
+    <div class="toolbar-actions edit-actions">
+      <button id="edit-cancel" class="ghost">Cancel</button>
+      <button id="edit-save" class="primary">Save</button>
+    </div>
+  </section>
 </main>
 
 <script>
@@ -148,7 +159,11 @@ function renderRows() {
       <td class="num">${e.downloads}${e.one_time ? ' / 1' : ''}</td>
       <td>${formatExpires(e.expires_at, now)}</td>
       <td>${e.has_password ? '<span title="password-protected">🔒</span>' : ''}${e.one_time ? '<span title="one-time" class="tag">1x</span>' : ''}</td>
-      <td><button class="danger-btn" data-id="${e.id}" title="Delete">
+      <td class="row-actions">
+        ${(e.kind === 'paste' || e.kind === 'url') ? `<button class="edit-btn" data-id="${e.id}" title="Edit content">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>` : ''}
+        <button class="danger-btn" data-id="${e.id}" title="Delete">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
       </button></td>`;
     rowsBody.appendChild(tr);
@@ -156,21 +171,93 @@ function renderRows() {
 }
 
 rowsBody.addEventListener('click', async e => {
-  const btn = e.target.closest('.danger-btn');
-  if (!btn) return;
-  const id = btn.dataset.id;
-  if (!confirm(`Delete "${id}"?`)) return;
-  const token = getToken();
-  const res = await fetch('/api/entries/' + encodeURIComponent(id), {
-    method: 'DELETE',
-    headers: {'X-Admin-Token': token},
-  });
-  if (res.ok) {
-    entries = entries.filter(x => x.id !== id);
-    renderRows();
-  } else {
-    alert('Delete failed: ' + res.status);
+  const delBtn = e.target.closest('.danger-btn');
+  if (delBtn) {
+    const id = delBtn.dataset.id;
+    if (!confirm(`Delete "${id}"?`)) return;
+    const token = getToken();
+    const res = await fetch('/api/entries/' + encodeURIComponent(id), {
+      method: 'DELETE',
+      headers: {'X-Admin-Token': token},
+    });
+    if (res.ok) {
+      entries = entries.filter(x => x.id !== id);
+      renderRows();
+    } else {
+      alert('Delete failed: ' + res.status);
+    }
+    return;
   }
+  const editBtn = e.target.closest('.edit-btn');
+  if (editBtn) openEditModal(editBtn.dataset.id);
+});
+
+// --- edit modal ------------------------------------------------------------
+
+const editModal = document.getElementById('edit-modal');
+const editIdLabel = document.getElementById('edit-id');
+const editContent = document.getElementById('edit-content');
+const editError = document.getElementById('edit-error');
+const editSave = document.getElementById('edit-save');
+const editCancel = document.getElementById('edit-cancel');
+let editingId = null;
+
+async function openEditModal(id) {
+  const token = getToken();
+  editError.hidden = true;
+  try {
+    const res = await fetch('/api/entries/' + encodeURIComponent(id), {
+      headers: {'X-Admin-Token': token, 'Accept': 'application/json'},
+    });
+    if (!res.ok) { alert('Failed to load entry: ' + res.status); return; }
+    const full = await res.json();
+    editingId = id;
+    editIdLabel.textContent = id;
+    editContent.value = full.content || '';
+    editModal.hidden = false;
+    editContent.focus();
+  } catch (err) {
+    alert('Failed to load entry: ' + err);
+  }
+}
+
+function closeEditModal() {
+  editModal.hidden = true;
+  editingId = null;
+}
+
+editCancel.addEventListener('click', closeEditModal);
+
+editSave.addEventListener('click', async () => {
+  if (!editingId) return;
+  const token = getToken();
+  editError.hidden = true;
+  const body = new URLSearchParams({content: editContent.value});
+  const res = await fetch('/api/entries/' + encodeURIComponent(editingId), {
+    method: 'PATCH',
+    headers: {
+      'X-Admin-Token': token,
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept': 'application/json',
+    },
+    body: body.toString(),
+  });
+  if (!res.ok) {
+    const msg = await res.text();
+    editError.textContent = 'Save failed: ' + msg;
+    editError.hidden = false;
+    return;
+  }
+  const updated = await res.json();
+  const entry = entries.find(x => x.id === editingId);
+  if (entry) {
+    entry.size = updated.size;
+    entry.preview = entry.kind === 'paste'
+      ? (updated.content.length > 120 ? updated.content.slice(0, 120) + '…' : updated.content)
+      : updated.content;
+  }
+  closeEditModal();
+  renderRows();
 });
 
 function escapeHtml(s) {

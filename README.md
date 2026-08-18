@@ -15,7 +15,7 @@ Think of it as a private, disposable pastebin + file drop + link shortener that 
 - **One-time links** — auto-delete after the first successful access, atomically enforced
 - **Expiring entries** — set a TTL (`1h`, `7d`, `never`, or any Go duration); a background janitor sweeps expired records every minute
 - **Custom slugs** — pick your own short id, or let the server generate one
-- **Admin dashboard** — list, inspect, and delete entries via a token-gated UI at `/admin`
+- **Admin dashboard** — list, inspect, edit, and delete entries via a token-gated UI at `/admin`
 - **Zero-dependency runtime** — pure Go SQLite (`modernc.org/sqlite`), templates and static assets embedded via `//go:embed`
 - **Reverse-proxy aware** — respects `X-Forwarded-Proto` / `X-Forwarded-Host` when generating share links
 - **Light + dark theme** — follows `prefers-color-scheme`
@@ -114,6 +114,18 @@ curl -X POST http://localhost:8080/api/shorten \
   -H "X-Admin-Token: $TOKEN" \
   -d "url=https://example.com/very/long/path" \
   -d "custom_id=my-link"
+```
+
+#### Edit a paste or URL
+
+Updates the stored `content` of an existing paste or shortened URL in place
+(same id, same expiry/password/one-time settings). File entries can't be
+edited this way — re-upload to replace a file's bytes.
+
+```bash
+curl -X PATCH http://localhost:8080/api/entries/my-link \
+  -H "X-Admin-Token: $TOKEN" \
+  -d "content=https://example.com/new/target"
 ```
 
 #### Common form fields

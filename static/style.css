@@ -411,6 +411,26 @@ button.ghost:hover {
   border-color: var(--danger);
 }
 
+.edit-btn {
+  padding: 6px;
+  background: transparent;
+  color: var(--fg-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+}
+.edit-btn:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.row-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
 /* ---------- result card ---------- */
 .result {
   display: block;
@@ -522,6 +542,40 @@ pre.paste {
 }
 .stack .field {
   margin: 0;
+}
+
+/* ---------- edit modal ---------- */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  margin: auto;
+  width: min(600px, calc(100vw - 32px));
+  height: fit-content;
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+.edit-textarea {
+  width: 100%;
+  min-height: 240px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  resize: vertical;
+}
+.edit-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.edit-actions {
+  justify-content: flex-end;
+  margin-top: 12px;
 }
 
 /* ---------- admin table ---------- */
