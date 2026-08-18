@@ -545,6 +545,18 @@ pre.paste {
 }
 
 /* ---------- edit modal ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: rgba(0, 0, 0, 0.4);
+  animation: fadeIn 0.15s ease-out;
+}
+@media (prefers-color-scheme: dark) {
+  .modal-backdrop {
+    background: rgba(0, 0, 0, 0.6);
+  }
+}
 .modal {
   position: fixed;
   inset: 0;
@@ -554,19 +566,68 @@ pre.paste {
   height: fit-content;
   max-height: calc(100vh - 64px);
   overflow-y: auto;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  animation: popIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- edit field ---------- */
+.edit-surface {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-subtle);
+  box-shadow: var(--shadow-sm);
+  animation: fadeIn 0.15s ease-out;
+}
+.edit-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.edit-meta .edit-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.edit-meta .edit-label svg {
+  flex: none;
 }
 .edit-textarea {
+  display: block;
   width: 100%;
   min-height: 240px;
-  padding: 9px 12px;
+  padding: 14px 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-mono);
   font-size: 13px;
+  line-height: 1.6;
   resize: vertical;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.edit-textarea:hover {
+  border-color: var(--border-strong);
 }
 .edit-textarea:focus {
   outline: none;
@@ -576,9 +637,6 @@ pre.paste {
 .edit-actions {
   justify-content: flex-end;
   margin-top: 12px;
-}
-#edit-panel {
-  margin-top: 8px;
 }
 
 /* ---------- admin table ---------- */

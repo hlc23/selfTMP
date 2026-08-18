@@ -61,8 +61,12 @@
   </section>
 
   <!-- edit modal -->
+  <div id="edit-backdrop" class="modal-backdrop" hidden></div>
   <section id="edit-modal" class="card modal" hidden>
-    <h2>Edit <span id="edit-id" class="mono"></span></h2>
+    <div class="edit-meta">
+      <h2>Edit <span id="edit-id" class="mono"></span></h2>
+      <span id="edit-count" class="muted small mono"></span>
+    </div>
     <textarea id="edit-content" class="edit-textarea" rows="10"></textarea>
     <p id="edit-error" class="error small" hidden></p>
     <div class="toolbar-actions edit-actions">
@@ -194,13 +198,20 @@ rowsBody.addEventListener('click', async e => {
 
 // --- edit modal ------------------------------------------------------------
 
+const editBackdrop = document.getElementById('edit-backdrop');
 const editModal = document.getElementById('edit-modal');
 const editIdLabel = document.getElementById('edit-id');
 const editContent = document.getElementById('edit-content');
+const editCount = document.getElementById('edit-count');
 const editError = document.getElementById('edit-error');
 const editSave = document.getElementById('edit-save');
 const editCancel = document.getElementById('edit-cancel');
 let editingId = null;
+
+function updateEditCount() {
+  editCount.textContent = editContent.value.length.toLocaleString() + ' chars';
+}
+editContent.addEventListener('input', updateEditCount);
 
 async function openEditModal(id) {
   const token = getToken();
@@ -214,6 +225,8 @@ async function openEditModal(id) {
     editingId = id;
     editIdLabel.textContent = id;
     editContent.value = full.content || '';
+    updateEditCount();
+    editBackdrop.hidden = false;
     editModal.hidden = false;
     editContent.focus();
   } catch (err) {
@@ -222,11 +235,16 @@ async function openEditModal(id) {
 }
 
 function closeEditModal() {
+  editBackdrop.hidden = true;
   editModal.hidden = true;
   editingId = null;
 }
 
 editCancel.addEventListener('click', closeEditModal);
+editBackdrop.addEventListener('click', closeEditModal);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !editModal.hidden) closeEditModal();
+});
 
 editSave.addEventListener('click', async () => {
   if (!editingId) return;
